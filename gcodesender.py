@@ -14,6 +14,7 @@ PosCheck = re.compile(
 
 
 ## degrees of pen state:
+pen_threshold = 1
 pen_up   = 60
 pen_down = 100
 pen_state_up = True
@@ -38,21 +39,22 @@ def gcode_print(message):
         pass
 
 def pen_check(z_position):
+    global pen_threshold
     global pen_up
     global pen_down
     global pen_state_up
     returndata = None
-    if float(z_position) >= 1 and pen_state_up == False:
-        print("Pen -> UP")
+    if float(z_position) >= pen_threshold and pen_state_up == False:
+        print("Pen ->  UP  M3 S{}".format(pen_up))
         pen_state_up = True
         returndata = "M3 S" + str(pen_up)
-    if float(z_position) < 1 and pen_state_up == True:
-        print("Pen -> Down")
+    if float(z_position) < pen_threshold and pen_state_up == True:
+        print("Pen -> Down  M3 S{}".format(pen_down))
         pen_state_up = False
         returndata = "M3 S" + str(pen_down)
     else:
         pass
-    print("returning data: {}".format(returndata))
+    #print("returning data: {}".format(returndata))
     return returndata
 
 
@@ -98,8 +100,14 @@ message = "\r\n\r\n" # Hit enter a few times to wake the Printrbot
 s.write(message.encode()) # Send g-code block
 time.sleep(2)   # Wait for Printrbot to initialize
 s.flushInput()  # Flush startup text in serial input
+print ('This experimental script filters Z movements.')
+print ('All movements above or below a threshold will trigger the pen with a M3 command')
+
 print ('Keep in mind, the bot has a buffer of about 16 lines')
 print ('Pen movements and rotations differ from screen buffer')
+prompt_data = input('  Press <Enter> to continue.')
+print (prompt_data)
+
 print ('Sending gcode')
 
 # Stream g-code
@@ -109,11 +117,11 @@ for line in f:
     if  (l.isspace()==False and len(l)>0) :
         #print ('Sending: ' + l)
         message = (l + '\n')
-        gcode_print(message)
+        gcode_print(message) # function to test regex filter
 
         pen_message = pen_rewrite(message)
         if pen_message: # check if there is pen movement needed
-            print("we need pen movement")
+            #print("we need pen movement")
             s.write(pen_message.encode()) # Send pen g-code block
 
         s.write(message.encode()) # Send g-code block
